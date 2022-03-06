@@ -1,0 +1,145 @@
+/* 
+    Created on : Aug 4, 2017, 
+    Author     : ericjbruno
+*/
+
+body {
+    align-items: center;
+}
+
+tbody {
+    background-color: #fff;
+    height: 150px;
+    overflow: auto;
+}
+
+td {
+    padding: 3px 10px;
+}
+
+thead>tr,
+tbody {
+    display: block;
+}
+
+#div_lista_redes_disponiveis {
+    width: 500px;
+    /* Tamanho da tabela onde mostras as redes disponineis */
+    margin: 0 auto;
+    border: 0;
+    box-shadow: 0 5px 30px darkgrey;
+    border-spacing: 0;
+    display: none;
+}
+
+#table_redes_encontradas {
+    background-color: #4cbddf;
+    padding: 5px;
+    box-shadow: 0px 0px 10px black;
+}
+
+#table_redes_encontradas thead th {
+    font-weight: bold;
+    background-color: black;
+    color: white;
+    padding: 5px 10px;
+}
+
+#table_redes_encontradas tr.clicked {
+    background: #ccd;
+}
+
+#table_redes_encontradas tr.highlight {
+    background: #eef;
+}
+
+
+/*
+#div_wifi_config {
+    width: 700px;
+    padding-top: 2%;
+    margin: 0 auto;
+    border: 0;
+    box-shadow: 0 5px 30px darkgrey;
+    border-spacing: 0;
+    display: block;
+}
+
+*/
+
+#title_wifi_config {
+    padding-top: 0px;
+    padding-bottom: 30px;
+}
+
+#div_wifi_config {
+    /* position: absolute; */
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    left: 0px;
+    width: 500px;
+    /* Larfura do aba vertical do inputs */
+    height: 900px;
+    margin: auto;
+    box-shadow: 0px 0px 10px black;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.row {
+    clear: both;
+}
+
+.column-3 {
+    width: 25%;
+}
+
+.column-9 {
+    width: 65%;
+}
+
+.label {
+    padding-top: 6px;
+    text-align: right;
+}
+
+.label:after {
+    content: ':';
+    padding-right: 10px;
+}
+
+.column {
+    float: left;
+    height: 41px;
+}
+
+.input input {
+    width: 100%;
+    height: 32px;
+    padding-left: 10px;
+    box-sizing: border-box;
+}
+
+.button {
+    background-color: burlywood;
+    /* Green */
+    border: none;
+    color: black;
+    padding: 10px 10px;
+    text-align: center;
+    text-decoration: none;
+    /* display: inline-block; */
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+
+.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#btnExibir {
+    visibility: hidden;
+}

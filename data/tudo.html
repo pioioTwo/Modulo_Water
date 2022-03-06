@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset=\ "UTF-8\">
+    <meta http-equiv=\ "X-UA-Compatible\" content=\ "IE=edge\">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Config</title>
+    <style type="text/css">
+        body {
+            align-items: center;
+            background-color: rgb(0, 0, 0);
+        }
+        
+        tbody {
+            background-color: rgb(255, 255, 255);
+            height: 150px;
+            overflow: auto;
+        }
+        
+        td {
+            padding: 3px 10px;
+        }
+        
+        thead>tr,
+        tbody {
+            display: block;
+        }
+        
+        #div_lista_redes_disponiveis {
+            width: 450px;
+            /* Tamanho da tabela onde mostras as redes disponineis */
+            margin: 0 auto;
+            border: 0;
+            box-shadow: 0 5px 30px darkgrey;
+            border-spacing: 0;
+            display: none;
+        }
+        
+        #table_redes_encontradas {
+            background-color: #4cbddf;
+            padding: 5px;
+            box-shadow: 0px 0px 10px black;
+        }
+        
+        #table_redes_encontradas thead th {
+            font-weight: bold;
+            background-color: black;
+            color: white;
+            padding: 5px 10px;
+        }
+        
+        #table_redes_encontradas tr.clicked {
+            background: #ccd;
+        }
+        
+        #table_redes_encontradas tr.highlight {
+            background: #eef;
+        }
+        
+        #title_wifi_config {
+            padding-top: 0px;
+            padding-bottom: 30px;
+        }
+        
+        #div_wifi_config {
+            top: 0px;
+            right: 0px;
+            bottom: 0px;
+            left: 0px;
+            width: 450px;
+            height: 900px;
+            margin: auto;
+            box-shadow: 0px 0px 10px black;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #a4b6bb;
+            color: rgb(0, 0, 0);
+        }
+        
+        .row {
+            clear: both;
+        }
+        
+        .cl-3 {
+            width: 25%;
+        }
+        
+        .cl-9 {
+            width: 65%;
+        }
+        
+        .lb {
+            padding-top: 6px;
+            text-align: right;
+        }
+        
+        .lb:after {
+            content: ":";
+            padding-right: 10px;
+        }
+        
+        .cl {
+            float: left;
+            height: 41px;
+        }
+        
+        .input input {
+            width: 100%;
+            height: 32px;
+            padding-left: 10px;
+            box-sizing: border-box;
+        }
+        
+        .button {
+            background-color: burlywood;
+            border: none;
+            color: black;
+            padding: 10px 10px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+        
+        .disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        #btnExibir {
+            visibility: hidden;
+        }
+    </style>
+    <script type="text/javascript">
+        var gateway = `ws://${window.location.hostname}/ws`;
+        var websocket;
+
+        var selected = null;
+        var visibilidade = false;
+        // Teste
+        var num_redes_disponiveis = 10;
+        var id_redes_disponiveis = [num_redes_disponiveis];
+        var ssid_redes_disponiveis = [num_redes_disponiveis];
+        var signal_redes_disponiveis = [num_redes_disponiveis];
+        var crip_redes_disponiveis = [num_redes_disponiveis];
+
+        // ----------------------------------------------------------------------------
+        // Initialization
+        // ----------------------------------------------------------------------------
+
+        window.addEventListener("load", onLoad);
+
+        function onLoad(event) {
+
+            initWebSocket();
+            initButton();
+
+
+            document.getElementById("btnExibirOcultar").addEventListener("click", function(e) {
+                ocultarExibir();
+            });
+            document.getElementById("btnAplicarConfig").addEventListener("click", function(e) {
+                console.log("clicked", this);
+                enviaJson();
+            });
+
+            console.log("Todos os recursos terminaram o carregamento!");
+
+        }
+
+        window.onload = function() {
+
+            for (v = 0; v < num_redes_disponiveis; v++) {
+                id_redes_disponiveis[v] = v;
+                ssid_redes_disponiveis[v] = "teste " + v;
+                signal_redes_disponiveis[v] = "s_" + v;
+                crip_redes_disponiveis[v] = "close";
+                console.log(ssid_redes_disponiveis[v]);
+            }
+
+
+            for (r = 0; r < num_redes_disponiveis; r++) {
+                addRow(
+                    id_redes_disponiveis[r], 30,
+                    signal_redes_disponiveis[r], 100,
+                    ssid_redes_disponiveis[r], 200,
+                    crip_redes_disponiveis[r], 72,
+                );
+            }
+        }
+
+
+        // ----------------------------------------------------------------------------
+        // WebSocket handling
+        // ----------------------------------------------------------------------------
+
+        function initWebSocket() {
+            console.log("Trying to open a WebSocket connection...");
+            websocket = new WebSocket(gateway);
+            websocket.onopen = onOpen;
+            websocket.onclose = onClose;
+            websocket.onmessage = onMessage;
+        }
+
+        function onOpen(event) {
+            console.log("Connection opened");
+        }
+
+        function onClose(event) {
+            console.log("Connection closed");
+            setTimeout(initWebSocket, 2000);
+        }
+
+        function onMessage(event) {
+            let data = JSON.parse(event.data);
+            document.getElementById("led").className = data.status;
+        }
+
+        // ----------------------------------------------------------------------------
+        // Button handling
+        // ----------------------------------------------------------------------------
+
+        function initButton() {
+            document.getElementById("toggle").addEventListener("click", onToggle);
+        }
+
+        function onToggle(event) {
+            websocket.send(JSON.stringify({
+                "action": "toggle"
+            }));
+        }
+
+
+        function tableHighlightRow() {
+            if (document.getElementById && document.createTextNode) {
+                var tables = document.getElementsByTagName("table");
+                for (var i = 0; i < tables.length; i++) {
+                    if (tables[i].className === "TableListJS") {
+                        var trs = tables[i].getElementsByTagName("tr");
+                        for (var j = 0; j < trs.length; j++) {
+                            if (trs[j].parentNode.nodeName === "TBODY") {
+                                trs[j].onmouseover = function() {
+                                    // "highlight" color is set in tablelist.css
+                                    if (this.className === "") {
+                                        this.className = "highlight";
+                                    }
+                                    return false
+                                }
+                                trs[j].onmouseout = function() {
+                                    if (this.className === "highlight") {
+                                        this.className = "";
+                                    }
+                                    return false
+                                }
+
+                                trs[j].onmousedown = function() {
+                                    if (this.className !== "clicked") {
+                                        if (selected !== null) {
+                                            selected.className = "";
+                                        }
+                                        this.className = "clicked";
+                                        selected = this;
+                                        var tabela = document.getElementById("table_redes_encontradas");
+                                        var selecionado = tabela.getElementsByClassName("TableListJS");
+                                        var dados = "";
+                                        var selecionado = selected;
+                                        selecionado = selecionado.getElementsByTagName("td");
+                                        dados += "ID: " + selecionado[0].innerHTML + " - SIGNAL: " + selecionado[1].innerHTML + " - SSID: " + selecionado[2].innerHTML + " - LOK: " + selecionado[3].innerHTML;
+                                        td_array_selected(selecionado[0].innerHTML, selecionado[1].innerHTML, selecionado[2].innerHTML, selecionado[3].innerHTML);
+                                    } else {
+                                        this.className = "";
+                                        selected = null;
+                                        document.getElementById("input_ssid").value = "SSID";
+                                    }
+                                    return true
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+
+        function addRow(col1Text, col1Width,
+            col2Text, col2Width,
+            col3Text, col3Width,
+            col4Text, col4Width) {
+            if (!document.getElementsByTagName) {
+                return;
+            }
+            var x = document.getElementById("table_redes_encontradas").rows.length;
+            tabBody = document.getElementsByTagName("tbody").item(0);
+            //tabBody = document.getElementsByTagName("tbody").item(0);
+            row = document.createElement("tr");
+            row.id = x;
+            cell1 = document.createElement("td");
+            cell2 = document.createElement("td");
+            cell3 = document.createElement("td");
+            cell4 = document.createElement("td");
+            cell1.width = col1Width + "px";
+            cell2.width = col2Width + "px";
+            cell3.width = col3Width + "px";
+            cell4.width = col4Width + "px";
+            textnode1 = document.createTextNode(col1Text);
+            textnode2 = document.createTextNode(col2Text);
+            textnode3 = document.createTextNode(col3Text);
+            textnode4 = document.createTextNode(col4Text);
+            cell1.appendChild(textnode1);
+            cell2.appendChild(textnode2);
+            cell3.appendChild(textnode3);
+            cell4.appendChild(textnode4);
+            row.appendChild(cell1);
+            row.appendChild(cell2);
+            row.appendChild(cell3);
+            row.appendChild(cell4);
+            tabBody.appendChild(row);
+            tableHighlightRow();
+        }
+
+
+
+        function toggleText(button_id) {
+            var text = document.getElementById(button_id).firstChild;
+            text.data = text.data == "Ocultar Redes" ? "Buscar Redes" : "Ocultar Redes";
+        }
+
+        function td_array_selected(id, signal, ssid, lock) {
+            document.getElementById("input_ssid").value = ssid;
+            //alert("Pressionado");
+        }
+
+
+        function ocultarExibir() {
+            if (visibilidade) {
+                document.getElementById("div_lista_redes_disponiveis").style.display = "none";
+                visibilidade = false;
+            } else {
+                document.getElementById("div_lista_redes_disponiveis").style.display = "block";
+                visibilidade = true;
+            }
+            toggleText("btnExibirOcultar");
+        }
+
+
+        function escreveMqttTopic() {
+            document.getElementById("input_ssid").value = "SSID";
+        }
+
+        function ValidateIPaddress(inputText) {
+            var ipformat = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+            if (inputText.value.match(ipformat)) {
+                document.form1.text1.focus();
+                return true;
+            } else {
+                alert("You have entered an invalid IP address!");
+                document.form1.text1.focus();
+                document.this.focus();
+                return false;
+            }
+        }
+
+        function limparDataInvalida(campo) {
+            console.log(campo.value);
+            if (!VerificaData(campo.value)) {
+                campo.value = "";
+            }
+            document.getElementById("topicMqtt").value = campo.value;
+        }
+
+        function VerificaData(digData) {
+            return true;
+        }
+
+        function redeceJson() {
+
+        }
+
+        function enviaJson() {
+            //var full_data = "{";
+            //full_data += " SSID : " + document.getElementById("input_ssid").value + " }";
+            //console.log(full_data);
+            //connection.send(full_data);
+            //console.log(connection);
+            formToJson();
+        }
+
+        function formToJson() {
+
+            var ssid = document.getElementById("input_ssid").value;
+            var pass = document.getElementById("input_pass").value;
+            var mqtt_ip = document.getElementById("mqtt_ip").value;
+            var mqtt_port = document.getElementById("mqtt_port").value;
+            var mqtt_user = document.getElementById("mqtt_user").value;
+            var mqtt_pass = document.getElementById("mqtt_pass").value;
+            var mqtt_root = document.getElementById("mqtt_root").value;
+            var mqtt_local = document.getElementById("mqtt_local").value;
+
+            var jsonFormInfo = JSON.stringify({
+                ssid: ssid,
+                pass: pass,
+                mqtt_ip: mqtt_ip,
+                mqtt_port: mqtt_port,
+                mqtt_user: mqtt_user,
+                mqtt_pass: mqtt_pass,
+                mqtt_root: mqtt_root,
+                mqtt_local: mqtt_local
+            });
+
+            window.alert(jsonFormInfo);
+
+        }
+    </script>
+</head>
+
+<body>
+    <div id="div_lista_redes_disponiveis">
+
+        <div>Redes Wifi Disponiveis</div>
+        <p></p>
+        <form id="form_redes_disponiveis">
+            <table class="TableListJS" id="table_redes_encontradas">
+                <thead>
+                    <tr>
+                        <td width="20px">ID</td>
+                        <td width="120px">SIGNAL</td>
+                        <td width="200px">teste</td>
+                        <td width="70px">Lok</td>
+                    </tr>
+                </thead>
+                <tbody style="height:200px">
+                </tbody>
+            </table>
+        </form>
+    </div>
+
+
+    <!--div>
+        <input id='{i}' name='{n}' length={l} placeholder='{p}' value='{v}' {c}>
+        <div class="row">
+            <div class="cl-3 cl lb"><label for='{f}'>{t}</label></div>
+            <div class="cl-9 cl input"> <input id='{i}' name='{n}' length={l} placeholder='{p}' value='{v}' {c}></div>
+        </div>
+    </div-->
+
+
+
+
+    <div id="div_wifi_config">
+
+        <div id="title_wifi_config">
+            <h3>Configuração WiFi</h3>
+            <!--button id="btnExibirOcultar" class="button" onclick="ocultarExibir()"> Buscar Redes </button-->
+            <button id="btnExibirOcultar" class="button"> Buscar Redes </button>
+        </div>
+
+
+        <div class="row">
+            <div class="cl-3 cl lb">
+                <label for="ssid_seleted">SSID</label>
+            </div>
+            <div class="cl-9 cl input">
+                <input type=text name=ssid_seleted id="input_ssid" placeholder="SSID">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="cl-3 cl lb">
+                <lb for="wifi_password">SENHA</lb>
+            </div>
+            <div class="cl-9 cl input">
+                <input type=password name=wifi_password id="input_pass" placeholder="SENHA">
+            </div>
+        </div>
+
+        <div>
+            <svg width="410" height="2">
+                <rect width="410" height="10" style="fill:rgb(0,0,0);stroke-width:10;stroke:rgb(0,0,0)" />
+            </svg>
+        </div>
+
+        <div id="title_wifi_config">
+            <h3>MQTT Setup</h3>
+
+        </div>
+        <div class="row">
+            <div class="cl-3 cl lb">
+                <lb for="mqtt_ip">BROKER</lb>
+            </div>
+            <div class="cl-9 cl input">
+                <input type="text" name=mqtt_ip id="mqtt_ip" placeholder="IP broker MQTT " autocomplete="off">
+
+            </div>
+        </div>
+        <div class="row">
+            <div class="cl-3 cl lb">
+                <lb for="txtPassword">PORTA</lb>
+            </div>
+            <div class="cl-9 cl input">
+                <input type="number" name="mqtt_port" id="mqtt_port" placeholder="1883" value="1883">
+            </div>
+        </div>
+        <div class="row">
+            <div class="cl-3 cl lb">
+                <lb for="txtPassword">USER</lb>
+            </div>
+            <div class="cl-9 cl input">
+                <input type="text" name="mqtt_user" id="mqtt_user" placeholder="USER" value="admin">
+            </div>
+        </div>
+        <div class="row">
+            <div class="cl-3 cl lb">
+                <lb for="txtPassword">SENHA</lb>
+            </div>
+            <div class="cl-9 cl input">
+                <input type="password" name="mqtt_pass" id="mqtt_pass" placeholder="SENHA" value="admin">
+            </div>
+        </div>
+
+        <div>
+            <svg width="410" height="2">
+                <rect width="410" height="10" style="fill:rgb(0,0,0);stroke-width:10;stroke:rgb(0,0,0)" />
+            </svg>
+        </div>
+
+        <div id="title_wifi_config">
+            <h3>Topico de Publicação</h3>
+            <P id="topicMqtt">root <b>/</b> local <b>/</b> sensorName</p>
+        </div>
+        <div class="row">
+            <div class="cl-3 cl lb">
+                <lb for="txtPassword">root</lb>
+            </div>
+            <div class="cl-9 cl input">
+                <input type="text" name="mqtt_root" id="mqtt_root" placeholder="root" onblur="limparDataInvalida(this);" value="root">
+            </div>
+        </div>
+        <div class="row">
+            <div class="cl-3 cl lb">
+                <lb for="txtPassword">local</lb>
+            </div>
+            <div class="cl-9 cl input">
+                <input type="text" name="mqtt_local" id="mqtt_local" placeholder="local" value="local">
+            </div>
+        </div>
+        <button id="btnAplicarConfig" class="button disabled">Aplicar Configuração</button>
+        <button id="toggle" class="button">toggle</button>
+    </div>
+
+</body>
+
+</html>
